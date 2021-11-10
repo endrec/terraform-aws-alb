@@ -1,5 +1,6 @@
 locals {
   create_lb = var.create_lb && var.putin_khuylo
+  create_tg = var.create_lb || var.create_tg
 }
 
 resource "aws_lb" "this" {
@@ -59,7 +60,7 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "main" {
-  count = local.create_lb ? length(var.target_groups) : 0
+  count = local.create_tg ? length(var.target_groups) : 0
 
   name        = lookup(var.target_groups[count.index], "name", null)
   name_prefix = lookup(var.target_groups[count.index], "name_prefix", null)
@@ -136,7 +137,7 @@ locals {
 }
 
 resource "aws_lb_target_group_attachment" "this" {
-  for_each = local.create_lb && local.target_group_attachments != null ? local.target_group_attachments : {}
+  for_each = local.create_tg && local.target_group_attachments != null ? local.target_group_attachments : {}
 
   target_group_arn  = aws_lb_target_group.main[each.value.tg_index].arn
   target_id         = each.value.target_id
@@ -145,7 +146,7 @@ resource "aws_lb_target_group_attachment" "this" {
 }
 
 resource "aws_lb_listener_rule" "https_listener_rule" {
-  count = local.create_lb ? length(var.https_listener_rules) : 0
+  count = local.create_tg ? length(var.https_listener_rules) : 0
 
   listener_arn = aws_lb_listener.frontend_https[lookup(var.https_listener_rules[count.index], "https_listener_index", count.index)].arn
   priority     = lookup(var.https_listener_rules[count.index], "priority", null)
@@ -392,7 +393,7 @@ resource "aws_lb_listener_rule" "https_listener_rule" {
 }
 
 resource "aws_lb_listener_rule" "http_tcp_listener_rule" {
-  count = local.create_lb ? length(var.http_tcp_listener_rules) : 0
+  count = local.create_tg ? length(var.http_tcp_listener_rules) : 0
 
   listener_arn = aws_lb_listener.frontend_http_tcp[lookup(var.http_tcp_listener_rules[count.index], "http_tcp_listener_index", count.index)].arn
   priority     = lookup(var.http_tcp_listener_rules[count.index], "priority", null)
@@ -732,7 +733,7 @@ resource "aws_lb_listener" "frontend_https" {
 }
 
 resource "aws_lb_listener_certificate" "https_listener" {
-  count = local.create_lb ? length(var.extra_ssl_certs) : 0
+  count = local.create_tg ? length(var.extra_ssl_certs) : 0
 
   listener_arn    = aws_lb_listener.frontend_https[var.extra_ssl_certs[count.index]["https_listener_index"]].arn
   certificate_arn = var.extra_ssl_certs[count.index]["certificate_arn"]
